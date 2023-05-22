@@ -1,5 +1,4 @@
 ## pytorch-related lib
-diffusers == 0.11.1
 lpips == 0.1.4
 torchsummary == 1.5.1
 invisible-watermark == 0.1.5
@@ -12,6 +11,6 @@ test-tube==0.7.5
 kornia==0.6
 transformers==4.19.2
 pytorch-lightning==1.4.2
-open_clip_torch==2.0.2
+protobuf == 3.19.*
 -e git+https://github.com/openai/CLIP.git@main#egg=clip
 -e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers

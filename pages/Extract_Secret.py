@@ -28,8 +28,8 @@ from tools.ecc import BCH, RSC
 import streamlit as st
 from Embed_Secret import load_ecc, load_model, decode_secret
 
-model_names = ['RoSteALS', 'RivaGAN']
-SECRET_LEN = 160
+model_names = ['RoSteALS']
+SECRET_LEN = 100
 
 def app():
     st.title('Watermarking Demo')
@@ -53,7 +53,7 @@ def app():
     noise = RandomImagenetC(phase='test')
     corrupt_methods = [noise.method_names[i] for i in noise.corrupt_ids]
 
-    corrupt_method = st.selectbox("Choose the corruption", ['None'] + corrupt_methods)
+    corrupt_method = st.selectbox("Choose the corruption (one may work better than others)", ['None'] + sorted(corrupt_methods))
     if corrupt_method == 'None':
         corrupt_id = 999
     else:
@@ -65,7 +65,6 @@ def app():
     if image_file is not None:
         im_aug = im if corrupt_id==999 else noise(im, corrupt_id, corrupt_strength)
         st.image(im_aug, width=display_width)
-        # im_aug = tform(im_aug).unsqueeze(0).cuda()
 
     # prediction
     st.subheader('Extract Secret')
@@ -77,7 +76,7 @@ def app():
     
     # bit acc
     st.subheader('Accuracy')
-    secret_text = st.text_input('Input groundtruth secret')
+    secret_text = st.text_input('Input groundtruth secret (to know the exact bit recovery accuracy)')
     bit_acc_status = st.empty()
     if secret_text:
         secret = ecc.encode_text([secret_text])  # (1, 100)

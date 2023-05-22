@@ -2,7 +2,7 @@ import bchlib
 import numpy as np 
 from typing import List, Tuple
 import random 
-
+from copy import deepcopy
 
 class RSC(object):
     def __init__(self, data_bytes=16, ecc_bytes=4, verbose=False, **kwargs):
@@ -103,13 +103,15 @@ class BCH(object):
     def _decode_text(self, packet: np.array):
         assert len(packet.shape)==1
         packet = ''.join([str(int(bit)) for bit in packet])  # bit string
+        packet = packet[:(len(packet)//8*8)]  # trim to multiple of 8 bits
         packet = bytes(int(packet[i: i + 8], 2) for i in range(0, len(packet), 8))
         packet = bytearray(packet)
         # assert len(packet) == self.data_len + self.bch.ecc_bytes
         data, ecc = packet[:-self.bch.ecc_bytes], packet[-self.bch.ecc_bytes:]
+        data0 = decode_text_ascii(deepcopy(data)).strip()
         bitflips = self.bch.decode_inplace(data, ecc)
         if bitflips == -1:  # error, return random text
-            data = get_random_unicode(self.data_len) 
+            data = data0
         else:
             # data = data.decode('utf-8').strip()
             data = decode_text_ascii(data).strip()
@@ -248,8 +250,7 @@ class ECC(object):
         data = [self._decode(d) for d in data]
         return np.array(data)
 
-
-if __name__ == '__main__':
+def test_ecc():
     ecc = ECC()
     batch_size = 10 
     secret_ecc, secret_org = ecc.generate(batch_size)  # 10x100 ecc secret, 10x56 org secret
@@ -258,5 +259,23 @@ if __name__ == '__main__':
     secret_pred[:,3:6] = 1 - secret_pred[:,3:6]
     # pass secret_ecc to model and get predicted as secret_pred
     secret_pred_org = ecc.decode(secret_pred)  # 10x56
-    bit_ecc = np.all(secret_pred_org == secret_org, axis=1)  # 10
-    print(bit_ecc)
+    assert np.all(secret_pred_org == secret_org)  # 10
+
+
+def test_bch():
+    # test 100 bit
+    def check(text, poly, k, l):
+        bch = BCH(poly, k, l)
+        # text = 'secrets'
+        encode = bch.encode_text([text])
+        for ind in np.random.choice(l, k):
+            encode[0, ind] = 1 - encode[0, ind]
+        text_recon = bch.decode_text(encode)[0]
+        assert text==text_recon
+    
+    check('secrets', 137, 5, 100)
+    check('some secret', 285, 10, 160)
+
+if __name__ == '__main__':
+    test_ecc()
+    test_bch()
